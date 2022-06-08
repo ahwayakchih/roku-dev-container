@@ -3,8 +3,6 @@ name: Docker Image CI
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 jobs:
 
@@ -20,5 +18,5 @@ jobs:
       run: docker save roku-dev-container:latest | zstd -19 -o rokudev.tar.zstd
     - uses: actions/upload-artifact@v3
       with:
-        name: rokudev
+        name: rokudev.tar.zstd
         path: rokudev.tar.zstd
