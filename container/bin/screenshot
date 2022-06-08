@@ -1,0 +1,53 @@
+#!/usr/bin/env node
+
+/**
+ * @requires @dlenroc/roku
+ * @requires mri
+ */
+
+const fs = require('fs/promises');
+const roku = require('@dlenroc/roku');
+const mri = require('mri');
+
+const argv = mri(process.argv.slice(2));
+
+if (!argv.host) {
+	argv.host = process.env.DEPLOY_HOST;
+
+	if (!argv.host) {
+		console.error('No `host` value found.');
+		process.exit(-1);
+	}
+}
+
+if (!argv.password) {
+	argv.password = process.env.DEPLOY_PASS;
+
+	if (!argv.password) {
+		console.error('No `password` value found.');
+		process.exit(-1);
+	}
+}
+
+if (!argv.username) {
+	argv.username = process.env.DEPLOY_USER;
+	if (!argv.username) {
+		argv.username = 'rokudev';
+		console.warn('No `username` value found, falling back to "' + argv.username + '".');
+	}
+}
+
+async function screenshot() {
+	const sdk = new roku.SDK(argv.host, argv.username, argv.password);
+
+	await sdk.ecp.launch('dev');
+	const data = await sdk.developerServer.getScreenshot();
+	fileName = argv.o || (buf => {
+		magic = buf.readUInt32BE(0);
+		return 'screenshot.' + (magic == 0x89504e47 ? 'png' : 'jpg');
+	})(data);
+	await fs.writeFile(argv.o || fileName, data);
+}
+
+process.once('quit', () => console.log(''));
+screenshot().finally(() => process.emit('quit'));

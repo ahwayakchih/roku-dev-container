@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# Remove created files
+
+rm -rf "${APP_DIR}"/builds/* 2>/dev/null

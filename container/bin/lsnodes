@@ -1,0 +1,26 @@
+#!/bin/sh
+
+# List current SceneGraph nodes in dev channel
+# See: https://developer.roku.com/en-gb/docs/developer-program/debugging/external-control-api.md#querysgnodesall-example
+
+if test -z "${DEPLOY_HOST}" ; then
+	echo "No DEPLOY_HOST specified" >&2
+	exit 1
+fi
+
+case "$1" in
+	"")
+		FILTER=all
+		echo "No id specified, defaulting to '${FILTER}'. You can pass 'all', 'root' or specific ID as param."
+		;;
+	all|root)
+		FILTER=$1
+		echo "Getting '${FILTER}' nodes"
+		;;
+	*)
+		FILTER="nodes?node-id=${1}"
+		echo "Getting all nodes with ID matching '${1}'"
+		;;
+esac
+
+curl "http://${DEPLOY_HOST}:8060/query/sgnodes/${FILTER}"

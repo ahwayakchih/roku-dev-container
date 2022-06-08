@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# Print version numbers of Alpine Linux and npm packages
+
+# output OS info
+. /etc/os-release
+echo "Running on ${PRETTY_NAME}"
+
+# output dependencies info
+npm list -g ${APP_DEV_DEPS}

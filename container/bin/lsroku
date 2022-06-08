@@ -1,0 +1,78 @@
+#!/usr/bin/env node
+
+/**
+ * @requires node-ssdp
+ * @requires cheerio
+ */
+
+const http = require('http');
+const SSDPClient = require('node-ssdp').Client;
+const cheerio = require('cheerio');
+
+const ssdp = new SSDPClient();
+var shouldExit = false;
+var responses = 0;
+
+const rokuDevices = [];
+
+ssdp.on('response', function (headers, statusCode, rinfo) {
+	const url = headers.LOCATION || headers.Location || headers.location;
+	if (!url) {
+		return
+	}
+
+	responses += 1;
+	http.get(url, res => {
+		if (res.statusCode != 200) {
+			responses -= 1;
+			shouldExit = true;
+			res.resume();
+			return;
+		}
+
+		res.setEncoding('utf8');
+		let xml = '';
+		res.on('data', (chunk) => { xml += chunk; });
+		res.on('end', () => {
+			const $ = cheerio.load(xml);
+			const name = $('root device friendlyName').text();
+			const modelName = $('root device modelName').text();
+			const serialNumber = $('root device serialNumber').text();
+			rokuDevices.push({
+				address: rinfo.address,
+				ecp: url,
+				name,
+				modelName,
+				serialNumber
+			});
+			responses -= 1;
+			shouldExit = true;
+		});
+	}).on('error', error => {
+		console.error(error);
+		responses -= 1;
+		shouldExit = true;
+	});
+});
+
+var loopsLeft = 10; // 10 seconds
+var loop = setInterval(function () {
+	loopsLeft -= 1;
+	if (responses < 1 && loopsLeft <= 0) {
+		shouldExit = true;
+	}
+	if (shouldExit && responses < 1) {
+		clearInterval(loop);
+		loop = null;
+		if (rokuDevices.length < 1) {
+			console.error('No devices found');
+			process.exit(-1);
+			return;
+		}
+
+		rokuDevices.forEach(d => console.log(`${d.address}\t${d.ecp}\t"${d.name}"\t"${d.modelName}"\t"${d.serialNumber}"`));
+		process.exit(0);
+	}
+}, 1000);
+
+ssdp.search('roku:ecp');

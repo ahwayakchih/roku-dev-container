@@ -1,0 +1,21 @@
+namespace tests
+
+	@suite("ExampleTests")
+	class ExampleTests extends Rooibos.BaseTestSuite
+
+		protected override function setup()
+			m.globalExample = CreateExample()
+		end function
+
+		'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+		@describe("Example")
+		'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+		@it("has text")
+		function _()
+			m.assertNotInvalid(m.globalExample)
+			m.assertNotInvalid(m.globalExample.text)
+		end function
+	end class
+
+end namespace

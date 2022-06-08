@@ -1,0 +1,81 @@
+#!/usr/bin/env node
+
+/**
+ * @requires mri
+ * @requires minimatch
+ * 
+ * Lists project files that will be included in the channel's ZIP file.
+ */
+
+const fs = require('fs');
+const mri = require('mri');
+const path = require('path');
+const Minimatch = require('minimatch').Minimatch;
+
+const argv = mri(process.argv.slice(2));
+
+if (!argv.project) {
+	argv.project = process.env.PROJECT;
+
+	if (!argv.project) {
+		argv.project = `${process.env.APP_ASSETS_PATH}/template/config/bsconfig-${process.env.ROKU_ENV || "dev"}.json`;
+		console.warn(`No '--project' file name specified, falling back to default: '${argv.project}'`);
+	}
+}
+
+const CWD = process.cwd();
+const config = (() => {
+	try {
+		var data = require(path.join(CWD, argv.project));
+		return data;
+	}
+	catch (err) {
+		console.error(`Could not find ${argv.project} file`, err);
+		process.exit(-1);
+	}
+})()
+const files = config.files || [];
+const matchers = files.reduce((result, pattern) => {
+	if (pattern[0] == '#') return result;
+	result[pattern[0] == '!' ? 'exclude' : 'include'].push(new Minimatch(pattern));
+	return result;
+}, {include: [], exclude: []});
+
+function shouldExclude(name) {
+	for (let matcher of matchers.exclude) {
+		if (!matcher.match(name)) return true;
+	}
+	return false;
+}
+
+function canInclude(name) {
+	for (let matcher of matchers.include) {
+		// Including should be "optimistic", because we do want to et into subdirectories
+		// So we match with partial=true
+		if (matcher.match(name, true)) return true;
+	}
+	return false;
+}
+
+function scanDirectory(dirPath = '') {
+	const scanPath = dirPath ? path.join(CWD, dirPath) : CWD;
+	fs.readdir(scanPath, {withFileTypes: true}, (err, files) => {
+		if (err) {
+			console.error(err);
+			return;
+		}
+		for (let file of files) {
+			checkName = path.join(dirPath, file.name)
+			if (shouldExclude(checkName)) continue;
+			if (!canInclude(checkName)) continue;
+			if (file.isFile()) {
+				console.log(checkName);
+			}
+			else if (file.isDirectory()) {
+				scanDirectory(checkName);
+			}
+		}
+	});
+}
+
+scanDirectory();

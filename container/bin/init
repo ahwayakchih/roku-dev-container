@@ -1,0 +1,32 @@
+#!/bin/sh
+
+# Exit early if APP_DIR looks like home directory
+if [ -d "${APP_DIR}/.ssh" ] || [ -d "${APP_DIR}/.bash_history" ] || [ -d "${APP_DIR}/.bashrc" ] || [ -d "${APP_DIR}/.zshrc" ] ; then
+	if [ -z "$FORCE_APP_DIR" ] ; then
+		echo "ERROR: It is not safe to run sdk in what looks like a home directory!" >&2;
+		echo "       You can create subdirectory first and run sdk there." >&2;
+		echo "       Or set FORCE_APP_DIR=true variable in environment and then run sdk." >&2;
+		exit 1
+	fi
+fi
+
+if test -f Makefile ; then
+	echo "Project already initialized: Makefile exists, remove it to reinitialize" >&2;
+	exit 0
+fi
+
+echo "Initializing project"
+
+# Directories
+for name in $(find ${APP_ASSETS_PATH}/template -mindepth 1 -maxdepth 1 -type d -print) ; do
+	checkName=$(basename "${name}")
+	test -e "${checkName}" || cp -r "${name}" "${checkName}"
+done
+
+# Files
+for name in $(find ${APP_ASSETS_PATH}/template -mindepth 1 -maxdepth 1 -type f -print) ; do
+	checkName=$(basename "${name}")
+	test -e "${checkName}" || cp -r "${name}" "${checkName}"
+done
+
+test -f Makefile || cp ${APP_ASSETS_PATH}/host.makefile Makefile

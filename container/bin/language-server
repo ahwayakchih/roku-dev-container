@@ -1,0 +1,12 @@
+#!/usr/bin/env node
+
+/**
+ * @requires mri
+ * @requires brighterscript
+ * 
+ * Runs language server
+ */
+
+const LanguageServer = require('brighterscript').LanguageServer;
+const server = new LanguageServer();
+server.run();

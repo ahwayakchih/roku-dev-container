@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# Upgrade SDK and examples
+# This script has to be run as container's root user
+
+apk update && apk upgrade --available
+
+su node -c "for dep in ${APP_DEV_DEPS} ; do npm install -g \${dep}@latest; done"

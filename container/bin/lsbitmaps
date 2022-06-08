@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# List assets that have been loaded into texture memory
+# See: https://developer.roku.com/en-gb/docs/developer-program/debugging/external-control-api.md#queryr2d2-bitmaps-example
+
+if test -z "${DEPLOY_HOST}" ; then
+	echo "No DEPLOY_HOST specified" >&2
+	exit 1
+fi
+
+curl "http://${DEPLOY_HOST}:8060/query/r2d2-bitmaps"

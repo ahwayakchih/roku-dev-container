@@ -1,0 +1,33 @@
+#!/bin/sh
+
+eval set -- $(getopt -l "channel:,project:" -o "" -- $@)
+while true ; do
+	case "$1" in
+		--channel)
+			shift
+			export CHANNEL_ZIP=$1
+			;;
+		--project)
+			shift
+			export PROJECT_CONFIG=$1
+			;;
+		--)
+			shift
+			break;;
+	esac
+	shift
+done
+
+if test -z "${CHANNEL_ZIP}" ; then
+	export CHANNEL_ZIP=roku-channel.zip
+	echo "No --channel value specified, falling back to '${CHANNEL_ZIP}'."
+fi
+
+if test -z "${PROJECT_CONFIG}" ; then
+	export PROJECT_CONFIG=${APP_ASSETS_PATH}/template/config/bsconfig-${ROKU_ENV:-dev}.json
+	echo "No '--project' file name specified, falling back to default: '${PROJECT_CONFIG}'."
+fi
+
+# Build channel ZIP
+rm -f "${CHANNEL_ZIP}"
+lsfiles --project="${PROJECT_CONFIG}" | zip -9 -r -@ "${CHANNEL_ZIP}"

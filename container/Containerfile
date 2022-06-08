@@ -1,0 +1,62 @@
+#
+# Example build command:
+# 	podman build -t rokudev --build-arg NODE_VERSION=16.14.2 .
+#
+FROM docker.io/alpine
+
+# Prepare some of the defaults
+ENV APP_ASSETS_PATH=/usr/local/share/roku
+ENV APP_DIR=/app
+
+# Prepare Alpine environment, add "node" user
+RUN apk update \
+	&& apk upgrade --available \
+	&& apk add --no-cache make bash curl rsync libstdc++ zip \
+	&& addgroup -g 1000 node \
+	&& adduser -u 1000 -G node -s /bin/bash -D node \
+	&& mkdir -p ${APP_DIR}/node_modules \
+    && chmod -R 755 ${APP_DIR} \
+    && chown -R node:node ${APP_DIR}
+
+COPY ./bin/* /usr/local/bin
+COPY ./assets ${APP_ASSETS_PATH}
+RUN chmod -R u+x /usr/local/bin/*\
+	&& chmod -R u+r ${APP_ASSETS_PATH}
+
+USER node
+WORKDIR /app
+
+ARG NODE_VERSION
+
+ENV N_NODE_MIRROR=https://unofficial-builds.nodejs.org/download/release/
+ENV N_PRESERVE_NPM=1
+ENV N_PREFIX=/home/node/.n
+ENV PATH=/home/node/bin:${N_PREFIX}/bin:${PATH}
+ENV PNPM_HOME=/home/node/bin
+
+# Install node.js
+RUN mkdir $HOME/bin \
+	&& curl -L https://raw.githubusercontent.com/tj/n/master/bin/n -o $HOME/bin/n \
+	&& chmod u+x $HOME/bin/n \
+	&& sed -i 's/^ARCH=$/ARCH="x64-musl"/' $HOME/bin/n \
+	&& n --no-preserve ${NODE_VERSION:-latest} \
+	&& node --version \
+	&& npm config set package-lock false \
+	&& ln -s ~/.n/lib/node_modules ~/.node_modules \
+	&& npm install -g npm@latest
+
+# Install:
+# - node-ssdp and cheerio for `lsroku` command,
+# - mri for most of the JS scripts,
+# - minimatch for `lsfiles` command,
+# - brighterscript and bslint for linting,
+# - rooibos and roku-deploy for running tests on Roku device
+# - roca (with brs) for running tests locally, on host machine, instead of on Roku device
+#   "@hulu/roca brs" are currently not installed because of failures
+# - @dlenroc/roku for `deploy`, `screenshot` and other tools
+# - undent is a dependency of Rooibos plugin which probably should be declared as non-dev dep
+#   because Rooibos errors if we do not have it installed directly
+ENV APP_DEV_DEPS="node-ssdp cheerio mri minimatch brighterscript @rokucommunity/bslint rooibos-roku roku-deploy @hulu/roca brs @dlenroc/roku undent"
+RUN npm install --loglevel=verbose -g ${APP_DEV_DEPS}
+
+CMD ["/bin/bash"]

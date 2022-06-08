@@ -1,0 +1,66 @@
+#!/usr/bin/env node
+
+/**
+ * @requires @dlenroc/roku
+ * @requires mri
+ */
+
+const fs = require('fs');
+const roku = require('@dlenroc/roku');
+const mri = require('mri');
+
+const argv = mri(process.argv.slice(2));
+
+if (!argv.host) {
+	argv.host = process.env.DEPLOY_HOST;
+
+	if (!argv.host) {
+		console.error('No `host` value found.');
+		process.exit(-1);
+	}
+}
+
+if (!argv.password) {
+	argv.password = process.env.DEPLOY_PASS;
+
+	if (!argv.password) {
+		console.error('No `password` value found.');
+		process.exit(-1);
+	}
+}
+
+if (!argv.username) {
+	argv.username = process.env.DEPLOY_USER;
+	if (!argv.username) {
+		argv.username = 'rokudev';
+		console.warn('No `username` value found, falling back to "' + argv.username + '".');
+	}
+}
+
+if (!argv.channel) {
+	argv.channel = 'roku-channel.zip';
+	console.warn('No `channel` value found, falling back to "' + argv.channel + '".');
+}
+
+var app = null;
+try {
+	app = fs.readFileSync(argv.channel);
+}
+catch (err) {
+	console.error(`"${argv.channel}" file not found.`);
+	process.exit(-1);
+}
+
+async function deploy() {
+	const sdk = new roku.SDK(argv.host, argv.username, argv.password);
+
+	await sdk.ecp.keypress('Home');
+	try {
+		await sdk.developerServer.delete();
+	}
+	catch (err) {}
+	await sdk.developerServer.install(app);
+}
+
+process.once('quit', () => console.log(''));
+deploy().finally(() => process.emit('quit'));
