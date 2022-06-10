@@ -50,7 +50,7 @@ function shouldExclude(name) {
 
 function canInclude(name) {
 	for (let matcher of matchers.include) {
-		// Including should be "optimistic", because we do want to et into subdirectories
+		// Including should be "optimistic", because we do want to get into subdirectories
 		// So we match with partial=true
 		if (matcher.match(name, true)) return true;
 	}

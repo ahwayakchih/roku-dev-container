@@ -29,5 +29,5 @@ if test -z "${PROJECT_CONFIG}" ; then
 fi
 
 # Build channel ZIP
-rm -f "${CHANNEL_ZIP}"
-lsfiles --project="${PROJECT_CONFIG}" | zip -9 -r -@ "${CHANNEL_ZIP}"
+rm -f "${CHANNEL_ZIP}" 2>/dev/null
+lsfiles --project="${PROJECT_CONFIG}" | zip -9 -r -@ "${CHANNEL_ZIP}" && echo "${CHANNEL_ZIP} done."

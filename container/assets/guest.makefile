@@ -7,7 +7,7 @@ endif
 
 -include ${ROKU_ENV}.env
 
-NOW:=$(shell date +%Y%m%dT%H%M%S)
+NOW?=$(shell date +%Y%m%dT%H%M%S)
 VERSION:=$(shell export $$(cat manifest | grep _version=) && echo "$${major_version}.$${minor_version}.$${build_version}")
 
 APP_DIR?=./
@@ -28,7 +28,7 @@ define get_targeted_roku_devices
 endef
 ROKUS?=$(get_targeted_roku_devices)
 
-all: build
+default: build deploy
 
 info:
 	@echo 'Running inside container.'
@@ -42,7 +42,7 @@ build: info init
 	@build --project config/bsconfig-${ROKU_ENV}.json --channel="${CHANNEL_ZIP}"
 	@echo "Build of v${VERSION} done"
 
-deploy: build $(patsubst %.env,%_deploy.env,$(ROKUS))
+deploy: $(patsubst %.env,%_deploy.env,$(ROKUS))
 	@echo "Deployment done"
 
 testOnHost:
@@ -52,6 +52,8 @@ testOnRokus: $(patsubst %.env,%_test.env,$(ROKUS))
 
 test: info testOnHost testOnRokus
 	@echo "Everything is OK on v${VERSION}"
+
+screenshot: $(patsubst %.env,%_screenshot.env,$(ROKUS))
 
 shell:
 	@echo "You're already in the Roku dev shell"
@@ -75,6 +77,9 @@ $(BUILDS_DIR):
 	@echo "Testing v${VERSION} on" $(patsubst %_test.env,%.env,$@)
 	@. $(patsubst %_test.env,%.env,$@) && bsc --project="${APP_DIR}/config/bsconfig-test.json" --outFile="$(patsubst %.zip,%-test.zip,${CHANNEL_ZIP})" --source-map --host="$${DEPLOY_HOST}" --password="$${DEPLOY_PASS}" || true
 
+%_screenshot.env:
+	@echo "Creating screenshot of" $(patsubst %_screenshot.env,%.env,$@)
+	@. $(patsubst %_screenshot.env,%.env,$@) && screenshot --host="$${DEPLOY_HOST}" --password="$${DEPLOY_PASS}" || true
 
 # Mark targets that do not create files, and should be run everytime they are mentioned
-.PHONY: all info init build deploy testOnHost testOnRokus test shell upgrade clean
+.PHONY: default info init build deploy testOnHost testOnRokus test shell upgrade clean
